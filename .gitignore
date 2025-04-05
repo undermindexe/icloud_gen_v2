@@ -7,3 +7,6 @@ database.db-wal
 data/__pycache__
 __pycache__/
 venv/
+output/
+main.spec
+build.bat
