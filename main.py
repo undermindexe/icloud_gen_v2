@@ -6,22 +6,33 @@ from data.db import Database
 from data.browser import Browser
 from data.service import *
 from data.env import *
+from data.proxy import ProxyManager
 
 
 
 async def worker_import(acc: Account):
     await acc.save_account()
 
-async def worker_generate(acc: AccountManager):
+async def worker_generate(acc: AccountManager, pr: ProxyManager = None):
     while True:
         try:
-            account = await acc.get()
-            if account:
-                if await account.login():
-                    await account.generate_hme()
-                    await acc.drop(account)
+            account = None
+            proxy = None
+            if pr:
+                proxy = await pr.get()
+            if acc:
+                account = await acc.get()
+                if account:
+                    login = await account.login(proxy) if proxy else await account.login()
+                    if login:
+                        await account.generate_hme(proxy) if proxy else await account.generate_hme()
         except Exception as e:
             print(e)
+        finally:
+            if pr:
+                await pr.drop(proxy)
+            if account:
+                await acc.drop(account)
 
 async def get_task():
     try:
@@ -33,8 +44,11 @@ async def get_task():
             return tasks
         elif s == "2":
             accounts = await get_accounts()
-            manager = AccountManager(accounts=accounts)
-            task = [worker_generate(manager)]
+            if PROXY_MODE:
+                proxies = await get_proxies()
+                proxy_manager = ProxyManager(proxies)
+            acc_manager = AccountManager(accounts=accounts)
+            task = [worker_generate(acc = acc_manager, pr = proxy_manager) if PROXY_MODE else worker_generate(acc = acc_manager)]
             return task
         elif s == "3":
             return 

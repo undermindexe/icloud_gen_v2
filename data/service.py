@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
+from .proxy import Proxy
 from .account import Account
 from .console import Interface, ui
 from .db import Database
@@ -47,6 +49,22 @@ async def get_accounts():
         print('The cookies.txt or proxy.txt file is likely empty')
         raise SystemExit
     
+async def get_proxies():
+    try:
+        proxies = []
+        with open('proxy.txt', 'r', encoding='utf-8') as file:
+            line_proxies = [line.strip() for line in file.readlines() if line.strip()]
+            for i in line_proxies:
+                line = i.split(':')
+                host = line[0]
+                port = int(line[1])
+                link = line[2] + ':' + line[3]
+                proxies.append(Proxy(host = host, port = port, link = link, proxy_type = 'socks5://'))
+        return proxies
+    except(TypeError) as e:
+        print(e)
+        raise SystemExit
+
 async def safe_wait_for_selector(page, selector: str, timeout: int = 5000, state: str = "visible") -> bool:
     try:
         await page.wait_for_selector(selector, timeout=timeout, state=state)

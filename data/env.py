@@ -23,5 +23,6 @@ def get_int(name: str, default=0):
 def get_str(name: str, default=""):
     return os.getenv(name, default)
 
-VISIBLE_MODE = get_bool('VISIBLE_MODE')
+HIDDEN_MODE = get_bool('HIDDEN_MODE')
+PROXY_MODE = get_bool('PROXY_MODE')
 DEBUG = get_bool('DEBUG')

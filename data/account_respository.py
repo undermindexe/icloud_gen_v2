@@ -29,6 +29,11 @@ class AccountRepository:
         await Database.execute(query, (session, email))
 
     @staticmethod
+    async def update_count_hme(email: str, count_hme: str):
+        query = 'UPDATE Accounts SET count_hme = ? WHERE email = ?'
+        await Database.execute(query, (count_hme, email))
+
+    @staticmethod
     async def update_last_generate(email: str, last_generate):
         query = 'UPDATE Accounts SET last_generate = ? WHERE email = ?'
         await Database.execute(query, (last_generate, email))

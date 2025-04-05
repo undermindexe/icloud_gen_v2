@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from .console import Interface, ui
 from .account_respository import AccountRepository
 from .browser import *
+from .proxy import Proxy
 
 class Account:
     def __init__(self, 
@@ -38,13 +39,17 @@ class Account:
     async def update_session(self):
         await AccountRepository.update_session(email=self.email, session=self.session)
         ui.print(f'[bold magenta]Session has been updated[/] {self.email}')
+
+    async def update_count_hme(self):
+        await AccountRepository.update_count_hme(email=self.email, count_hme=self.count_hme)
+        ui.print(f'[bold magenta]Count hiden email has been updated[/] {self.email}')
     
     async def update_last_generate(self):
         await AccountRepository.update_last_generate(email=self.email, last_generate=self.last_generate)
         ui.print(f'[bold magenta]Last generate time has been updated[/] {self.email}')
 
-    async def login(self):
-        async with Browser(storage_state=self.session, is_json_string = True) as browser:
+    async def login(self, proxy: Proxy = None):
+        async with Browser(storage_state=self.session, is_json_string = True, proxy=proxy) as browser:
             attempt = 0
             while attempt <= 5:
                 attempt += 1
@@ -54,18 +59,24 @@ class Account:
                     if await safe_wait_for_selector(page=browser.page, selector="text='Sign In'", timeout=5000):
                         ui.print(f'[bold red]Need login in account[/] {self.email}:{self.password}')
                         await browser.page.click("text='Sign In'")
+                        await asyncio.sleep(3)
 
                         iframe_login = await browser.page.wait_for_selector("#aid-auth-widget-iFrame")
                         frame = await iframe_login.content_frame()
 
-                        if await safe_wait_for_selector(page = frame, selector="#account_name_text_field"):
+                        if await safe_wait_for_selector(page = frame, selector="#account_name_text_field", timeout=20000):
                             await frame.fill("#account_name_text_field", self.email)
                             await frame.click("#sign-in") 
                             await frame.wait_for_selector("#password_text_field")
                             await frame.fill("#password_text_field", self.password)
                             await frame.click("#sign-in")
-                            if await safe_wait_for_selector(frame, "text='Two-Factor Authentication'", timeout=2000):
+                            if await safe_wait_for_selector(frame, "text='Two-Factor Authentication'", timeout=10000):
                                 await frame.fill('[aria-label="Enter Verification Code Digit 1"]', ui.ask(f'[bold green]Need Two-Factor Authentication:[/] {self.email}'))
+                                await asyncio.sleep(5)
+                                frame_privacy =  await get_frame_with_text(page=browser.page, text='Apple\u00A0Account & Privacy')
+                                if frame_privacy:
+                                    if await frame_privacy.wait_for_selector('button:has-text("Continue")', timeout=1000):
+                                        await frame_privacy.click('button:has-text("Continue")')
                                 if await frame.wait_for_selector("text='Trust this browser?'"):
                                     await frame.click("text='Trust'")
                                     if await browser.page.wait_for_selector("text='iCloud+ Features'", timeout=10000):
@@ -88,8 +99,8 @@ class Account:
                     print(e)
             return False
 
-    async def generate_hme(self):
-        async with Browser(storage_state=self.session, is_json_string = True) as browser:
+    async def generate_hme(self, proxy: Proxy = None):
+        async with Browser(storage_state=self.session, is_json_string = True, proxy=proxy) as browser:
             await browser.goto("https://www.icloud.com/icloudplus/")
 
             try:
@@ -101,12 +112,31 @@ class Account:
                         iframe_generator = await browser.page.wait_for_selector("iframe.child-application")
                         frame = await iframe_generator.content_frame()
 
-                        count_hme = await frame.text_content(".Typography.PanelTitle-title3.modal-subtitle")
-                        ui.print(f'[bold magenta]Total hide email[/]: {count_hme} - {self.email}')
 
-                        await frame.wait_for_selector('button[title="Add"]', timeout=5000)
-                        await frame.click('button[title="Add"]')
-                        await asyncio.sleep(1)
+                        if await safe_wait_for_selector(frame, 'button[title="Add"]', timeout=5000):
+                            count_hme = await frame.text_content(".Typography.PanelTitle-title3.modal-subtitle")
+                            self.count_hme = count_hme.rstrip(' active')
+                            await self.update_count_hme()
+                            ui.print(f'[bold magenta]Total hide email[/]: {self.count_hme} - {self.email}')
+
+                            await frame.wait_for_selector('button[title="Add"]', timeout=5000)
+                            await frame.click('button[title="Add"]')
+                            await asyncio.sleep(1)
+
+                        else:
+                            if await safe_wait_for_selector(frame, 'h3.card-title:has-text("Set up a new email address")', timeout=5000):
+                                title = await frame.wait_for_selector('h3.card-title:has-text("Set up a new email address")')
+                                add_button = await title.evaluate_handle(
+                                """el => el.closest('.card')?.querySelector('button[title="Add"]')""")
+                                await add_button.click()
+
+                        #else:
+                        #    count_hme = await frame.text_content(".Typography.PanelTitle-title3.modal-subtitle")
+                        #    ui.print(f'[bold magenta]Total hide email[/]: {count_hme} - {self.email}')
+                        #
+                        #    await frame.wait_for_selector('button[title="Add"]', timeout=5000)
+                        #    await frame.click('button[title="Add"]')
+                        #    await asyncio.sleep(1)
 
                         await frame.wait_for_selector('input[name="hme-label"]', timeout=5000)
                         await frame.fill('input[name="hme-label"]', '.')
@@ -134,10 +164,10 @@ class AccountManager:
         for acc in self.accounts:
             if acc.working == False and validate_time(acc.last_generate) if acc.last_generate != None else True:
                 acc.working = True
-                ui.print(f"🟢 Account selected: {acc.email}")
+                ui.print(f"🟢 Account selected: [blue]{acc.email}[/]")
                 return acc
         with ui.console.status(f"[bold green]No available accounts. Waiting for 5 minutes") as status:
-            counter = 300
+            counter = 600
             while counter >= 0:
                 status.update(f"[bold magenta]No available accounts[/]. Waiting for [bold blue]{counter}[/] second")
                 await asyncio.sleep(1)
