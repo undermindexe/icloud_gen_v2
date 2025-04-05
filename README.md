@@ -2,7 +2,7 @@
 
 <img src="assets/ICloud_logo.png" alt="Icon" width="150"/>
 
-# iCloud generator (hidden email)
+# iCloud generator V2(emulation)
 
 [![Crypto channel](https://img.shields.io/badge/crypto_channel-pink?style=plastic&label=Telegram&color=pink&link=https%3A%2F%2Ft.me%2Fexpanse_crypto)](https://t.me/expanse_crypto)
 [![Crypto chat](https://img.shields.io/badge/crypto_chat-pink?style=plastic&label=Telegram&color=pink&link=https%3A%2F%2Ft.me%2Fexpanse_crypto)](https://t.me/expanse_chat)
