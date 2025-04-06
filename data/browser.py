@@ -22,9 +22,11 @@ class Browser:
     async def __aenter__(self):
         self.playwright = await async_playwright().start()
         proxy = await self.validate_proxy()
-        self.browser = await self.playwright.chromium.launch(headless=self.headless, proxy=proxy)
+        self.browser = await self.playwright.chromium.launch(headless=self.headless, proxy=proxy, args=["--lang=en-US"])
 
-        context_args = {}
+        context_args = {
+            "locale": "en-US"
+        }
         if self.storage_state:
             if self.is_json_string:
                 context_args["storage_state"] = json.loads(self.storage_state)
