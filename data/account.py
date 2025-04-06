@@ -112,31 +112,21 @@ class Account:
                         iframe_generator = await browser.page.wait_for_selector("iframe.child-application")
                         frame = await iframe_generator.content_frame()
 
-
-                        if await safe_wait_for_selector(frame, 'button[title="Add"]', timeout=5000):
-                            count_hme = await frame.text_content(".Typography.PanelTitle-title3.modal-subtitle")
-                            self.count_hme = count_hme.rstrip(' active')
-                            await self.update_count_hme()
-                            ui.print(f'[bold magenta]Total hide email[/]: {self.count_hme} - {self.email}')
-
-                            await frame.wait_for_selector('button[title="Add"]', timeout=5000)
-                            await frame.click('button[title="Add"]')
-                            await asyncio.sleep(1)
-
+                        if await safe_wait_for_selector(frame, 'h3.card-title:has-text("Set up a new email address")', timeout=4000):
+                            title = await frame.wait_for_selector('h3.card-title:has-text("Set up a new email address")')
+                            add_button = await title.evaluate_handle(
+                            """el => el.closest('.card')?.querySelector('button[title="Add"]')""")
+                            await add_button.click()
                         else:
-                            if await safe_wait_for_selector(frame, 'h3.card-title:has-text("Set up a new email address")', timeout=5000):
-                                title = await frame.wait_for_selector('h3.card-title:has-text("Set up a new email address")')
-                                add_button = await title.evaluate_handle(
-                                """el => el.closest('.card')?.querySelector('button[title="Add"]')""")
-                                await add_button.click()
+                            if await safe_wait_for_selector(frame, 'button[title="Add"]', timeout=5000):
+                                count_hme = await frame.text_content(".Typography.PanelTitle-title3.modal-subtitle")
+                                self.count_hme = count_hme.rstrip(' active')
+                                await self.update_count_hme()
+                                ui.print(f'[bold magenta]Total hide email[/]: {self.count_hme} - {self.email}')
 
-                        #else:
-                        #    count_hme = await frame.text_content(".Typography.PanelTitle-title3.modal-subtitle")
-                        #    ui.print(f'[bold magenta]Total hide email[/]: {count_hme} - {self.email}')
-                        #
-                        #    await frame.wait_for_selector('button[title="Add"]', timeout=5000)
-                        #    await frame.click('button[title="Add"]')
-                        #    await asyncio.sleep(1)
+                                await frame.wait_for_selector('button[title="Add"]', timeout=5000)
+                                await frame.click('button[title="Add"]')
+                                await asyncio.sleep(1)
 
                         await frame.wait_for_selector('input[name="hme-label"]', timeout=5000)
                         await frame.fill('input[name="hme-label"]', '.')
