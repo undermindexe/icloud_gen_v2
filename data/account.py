@@ -152,10 +152,12 @@ class AccountManager:
 
     async def get(self):
         for acc in self.accounts:
-            if acc.working == False and validate_time(acc.last_generate) if acc.last_generate != None else True:
-                acc.working = True
-                ui.print(f"🟢 Account selected: [blue]{acc.email}[/]")
-                return acc
+            if acc.count_hme:
+                acc.count_hme = int(acc.count_hme)
+                if acc.count_hme < 750 and acc.working == False and validate_time(acc.last_generate) if acc.last_generate != None else True:
+                    acc.working = True
+                    ui.print(f"🟢 Account selected: [blue]{acc.email}[/]")
+                    return acc
         with ui.console.status(f"[bold green]No available accounts. Waiting for 5 minutes") as status:
             counter = 600
             while counter >= 0:
