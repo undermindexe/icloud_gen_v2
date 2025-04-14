@@ -1,10 +1,12 @@
 import asyncio
+import os
 from datetime import datetime, timezone
 
-from .console import Interface, ui
+from .console import ui
 from .account_respository import AccountRepository
-from .browser import *
+from .browser import Browser, safe_wait_for_selector, get_frame_with_text
 from .proxy import Proxy
+
 
 class Account:
     def __init__(self, 
@@ -14,6 +16,7 @@ class Account:
                  session: str = None, 
                  last_generate: datetime = None, 
                  count_hme: int = None, 
+                 list_hme: str = None,
                  created: datetime = None):
         self.email = email
         self.password = password
@@ -21,6 +24,7 @@ class Account:
         self.session = session
         self.last_generate = last_generate,
         self.count_hme = count_hme,
+        self.list_hme = list_hme,
         self.created = created,
         self.working = False
     
@@ -47,6 +51,10 @@ class Account:
     async def update_last_generate(self):
         await AccountRepository.update_last_generate(email=self.email, last_generate=self.last_generate)
         ui.print(f'[bold magenta]Last generate time has been updated[/] {self.email}')
+    
+    async def update_list_hme(self):
+        await AccountRepository.update_list_hme(email=self.email, list_hme=self.list_hme)
+        ui.print(f'[bold magenta]List hiden email has been updated[/] {self.email}')
 
     async def login(self, proxy: Proxy = None):
         async with Browser(storage_state=self.session, is_json_string = True, proxy=proxy) as browser:
@@ -145,19 +153,62 @@ class Account:
             except Exception as e:
                 print(e)
                 return False
+
+    async def get_list_hme(self, proxy: Proxy = None):
+        async with Browser(storage_state=self.session, is_json_string = True, proxy=proxy) as browser:
+            response_data = None
             
+            async def handle_response(response):
+                nonlocal response_data
+                if "hme/list" in response.url:
+                    try:
+                        response_data = await response.json()
+                        list_hme = []
+                        for hme in response_data['result']['hmeEmails']:
+                            if hme['isActive'] == True:
+                                mail = hme['hme']
+                                forward = hme['forwardToEmail']
+                                list_hme.append(f'{mail}:{forward}')
+                        if list_hme:
+                            os.makedirs(f'result', exist_ok=True)
+                            with open(f'result/{self.email}.txt', 'w', encoding='utf-8') as file:
+                                file.write('\n'.join(list_hme))
+
+                            self.list_hme = ':'.join(list_hme)
+                            await self.update_list_hme()
+
+                    except Exception as e:
+                        print(f"Error parsing response: {e}")
+            
+            browser.page.on("response", handle_response)
+            
+            await browser.goto("https://www.icloud.com/icloudplus/")
+
+            try:
+                if await safe_wait_for_selector(page=browser.page, selector="text='iCloud+ Features'", timeout=5000):
+                    await browser.page.wait_for_event("response", lambda response: "hme/list" in response.url, timeout=60000)
+                
+                    browser.page.remove_listener("response", handle_response)
+                    await asyncio.sleep(10)
+                    return True
+                else:
+                    ui.print(f'[bold green]Session not valid[/] {self.email}:{self.password}')
+                    return False
+            except Exception as e:
+                print(e)
+                return False
+
 class AccountManager:
     def __init__(self, accounts: list[Account] = None):
         self.accounts = accounts
 
     async def get(self):
         for acc in self.accounts:
-            if acc.count_hme:
-                acc.count_hme = int(acc.count_hme)
-                if acc.count_hme < 750 and acc.working == False and validate_time(acc.last_generate) if acc.last_generate != None else True:
-                    acc.working = True
-                    ui.print(f"🟢 Account selected: [blue]{acc.email}[/]")
-                    return acc
+            acc.count_hme = 0 if acc.count_hme == None else int(acc.count_hme)
+            if acc.count_hme < 750 and acc.working == False and validate_time(acc.last_generate) if acc.last_generate != None else True:
+                acc.working = True
+                ui.print(f"🟢 Account selected: [blue]{acc.email}[/]")
+                return acc
         with ui.console.status(f"[bold green]No available accounts. Waiting for 5 minutes") as status:
             counter = 600
             while counter >= 0:
@@ -165,12 +216,29 @@ class AccountManager:
                 await asyncio.sleep(1)
                 counter -= 1
 
+    async def get_hme(self):
+        if self.accounts:
+            for acc in self.accounts:
+                if acc.working == False:
+                    acc.working = True
+                    ui.print(f"🟢 Account selected: [blue]{acc.email}[/]")
+                    return acc
+            with ui.console.status(f"[bold green]No available accounts. Waiting for 5 minutes") as status:
+                counter = 600
+                while counter >= 0:
+                    status.update(f"[bold magenta]No available accounts[/]. Waiting for [bold blue]{counter}[/] second")
+                    await asyncio.sleep(1)
+                    counter -= 1
+        else:
+            raise SystemExit
 
     async def drop(self, account: Account):
         account.working = False
         account.last_generate = datetime.now(timezone.utc)
         await account.update_last_generate()
 
+    async def drop_hme(self, account: Account):
+        self.accounts.remove(account)
 
 def validate_time(last_time):
     if last_time == None:

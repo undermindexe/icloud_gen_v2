@@ -37,3 +37,8 @@ class AccountRepository:
     async def update_last_generate(email: str, last_generate):
         query = 'UPDATE Accounts SET last_generate = ? WHERE email = ?'
         await Database.execute(query, (last_generate, email))
+
+    @staticmethod
+    async def update_list_hme(email: str, list_hme):
+        query = 'UPDATE Accounts SET list_hme = ? WHERE email = ?'
+        await Database.execute(query, (list_hme, email))

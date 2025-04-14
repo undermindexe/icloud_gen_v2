@@ -8,5 +8,6 @@ data/__pycache__
 __pycache__/
 venv/
 output/
+result/
 main.spec
 build.bat

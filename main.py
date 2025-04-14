@@ -35,6 +35,27 @@ async def worker_generate(acc: AccountManager, pr: ProxyManager = None):
             if account:
                 await acc.drop(account)
 
+async def worker_export(acc: AccountManager, pr: ProxyManager = None):
+    while True:
+        try:
+            account = None
+            proxy = None
+            if pr:
+                proxy = await pr.get()
+            if acc:
+                account = await acc.get_hme()
+                if account:
+                    login = await account.login(proxy) if proxy else await account.login()
+                    if login:
+                        await account.get_list_hme(proxy) if proxy else await account.get_list_hme()
+        except Exception as e:
+            print(e)
+        finally:
+            if pr:
+                await pr.drop(proxy)
+            if account:
+                await acc.drop_hme(account)
+
 async def get_task():
     try:
         s = ui.ask(
@@ -52,7 +73,13 @@ async def get_task():
             task = [worker_generate(acc = acc_manager, pr = proxy_manager) if PROXY_MODE else worker_generate(acc = acc_manager)]
             return task
         elif s == "3":
-            return 
+            accounts = await get_accounts()
+            if PROXY_MODE:
+                proxies = await get_proxies()
+                proxy_manager = ProxyManager(proxies)
+            acc_manager = AccountManager(accounts=accounts)
+            task = [worker_export(acc = acc_manager, pr = proxy_manager) if PROXY_MODE else worker_export(acc = acc_manager)]
+            return task
         else:
             raise ValueError
     except (KeyboardInterrupt, ValueError):

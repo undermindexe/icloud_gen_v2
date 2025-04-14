@@ -1,9 +1,7 @@
 import asyncio
-import playwright
 import json
 import os
-from playwright.async_api import async_playwright, BrowserContext, Page
-from playwright.async_api import TimeoutError
+from playwright.async_api import async_playwright, BrowserContext, Page, TimeoutError
 from .console import *
 from .env import *
 from .proxy import Proxy
@@ -37,7 +35,6 @@ class Browser:
 
         self.context = await self.browser.new_context(**context_args)
         self.page = await self.context.new_page()
-        #ui.print('Start browser')
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -47,13 +44,11 @@ class Browser:
             await self.browser.close()
         if self.playwright:
             await self.playwright.stop()
-        #ui.print('Close browser')
 
     async def goto(self, url: str):
         if not self.page:
             raise Exception("Browser not launched")
         await self.page.goto(url)
-        #ui.print(f'Open {url}')
 
 
     async def save_storage_state(self, path: str = None) -> str:
