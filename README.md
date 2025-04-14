@@ -28,7 +28,7 @@ It also allows you to export the data in a convenient format, showing the hidden
 
 - Active iCloud session refresh in progress
 - Generating hidden email addresses
-- Exporting all email addresses (coming soon)
+- Exporting all email addresses
 - Deleting all email addresses (coming soon)
 
 ### Compatibility
@@ -63,7 +63,7 @@ Just download last [realese](https://github.com/undermindexe/icloud_gen_v2/relea
 
 - Активное обновление сессии iCloud
 - Генерация скрытых почтовых адресов
-- Экспорт всех почтовых адресов (скоро)
+- Экспорт всех почтовых адресов
 - Удаление всех почтовых адресов (скоро)
 
 ### Совместимость
