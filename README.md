@@ -41,7 +41,7 @@ The program **works on Windows, Linux, and MacOS**
 
 ### Install and Start
 
-Just download last [releas](https://github.com/undermindexe/icloud_gen_v2/releases) and run .exe file
+Just download last [release](https://github.com/undermindexe/icloud_gen_v2/releases) and run .exe file
 
 ### Contact
 
