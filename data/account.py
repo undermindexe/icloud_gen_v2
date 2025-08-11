@@ -73,6 +73,7 @@ class Account:
                         frame = await iframe_login.content_frame()
 
                         if await safe_wait_for_selector(page = frame, selector="#account_name_text_field", timeout=20000):
+                            await frame.click("#remember-me-label")
                             await frame.fill("#account_name_text_field", self.email)
                             await frame.click("#sign-in") 
                             await frame.wait_for_selector("#password_text_field")
